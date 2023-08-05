@@ -412,21 +412,6 @@ impl<A: Attribute> Attribute for (A,) {
     }
 }
 
-impl<A: Attribute, B: Attribute> Attribute for (A, B) {
-    fn attribute(&self) -> AttributeValue {
-        AttributeValue::L(vec![self.0.attribute(), self.1.attribute()])
-    }
-
-    fn value(attribute: AttributeValue) -> Result<Self> {
-        match attribute {
-            AttributeValue::L(mut list) => {
-                Ok((Attribute::value(list.remove(0))?, Attribute::value(list.remove(0))?))
-            },
-            _ => Err(StdError::from("invalid tuple expected a array to convert it to tuple"))
-        }
-    }
-}
-
 impl<A: Attribute, B: Attribute, C: Attribute> Attribute for (A, B, C) {
     fn attribute(&self) -> AttributeValue {
         AttributeValue::L(vec![self.0.attribute(), self.1.attribute(), self.2.attribute()])
