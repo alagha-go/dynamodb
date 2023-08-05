@@ -3,10 +3,11 @@ mod attribute;
 mod binary;
 mod null;
 
+use std::collections::{HashMap, VecDeque};
 use base64::engine::general_purpose;
 use serde::{Serialize, Deserialize};
 use base64::engine::GeneralPurpose;
-use std::collections::HashMap;
+use std::rc::Rc;
 use attribute_value::*;
 pub use binary::*;
 pub use null::*;
