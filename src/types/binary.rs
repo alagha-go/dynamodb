@@ -3,7 +3,7 @@ use serde::{Serialize, Deserialize};
 use base64::Engine;
 use super::BASE64;
 
-#[derive(Serialize, Deserialize, Default, Debug, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Default, Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Binary(#[serde(with="self")] pub Vec<u8>);
 
 

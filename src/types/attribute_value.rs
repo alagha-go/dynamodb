@@ -17,17 +17,12 @@ pub enum AttributeValue {
 }
 
 
-impl<A: Attribute, B: Attribute> Attribute for (A, B) {
+impl Attribute for AttributeValue {
     fn attribute(&self) -> AttributeValue {
-        AttributeValue::L(vec![self.0.attribute(), self.1.attribute()])
+        self.clone()
     }
 
     fn value(attribute: AttributeValue) -> Result<Self> {
-        match attribute {
-            AttributeValue::L(mut list) => {
-                Ok((Attribute::value(list.remove(0))?, Attribute::value(list.remove(0))?))
-            },
-            _ => Err(StdError::from("invalid tuple expected a array to convert it to tuple"))
-        }
+        Ok(attribute)
     }
 }

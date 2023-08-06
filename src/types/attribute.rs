@@ -1,3 +1,6 @@
+use std::time::{Duration, SystemTime};
+use errors::AttributeError;
+
 use super::*;
 
 pub trait Attribute: Sized {
@@ -371,6 +374,90 @@ impl Attribute for Vec<Binary> {
     }
 }
 
+impl<V: Attribute + Clone + Ord> Attribute for BTreeSet<V> {
+    fn attribute(&self) -> AttributeValue {
+        let values: Vec<V> = self.into_iter().map(|value|{value.clone()}).collect();
+        let values = values.as_slice();
+        V::vec_attribute(values)
+    }
+
+    fn value(value: AttributeValue) -> Result<Self> {
+        match value {
+            AttributeValue::L(list) => {
+                let mut tree = BTreeSet::new();
+                for value in list {
+                    tree.insert(Attribute::value(value)?);
+                }
+                Ok(tree)
+            },
+            AttributeValue::BS(binaries) => {
+                let mut tree = BTreeSet::new();
+                for binary in binaries {
+                    tree.insert(Attribute::value(AttributeValue::B(binary))?);
+                }
+                Ok(tree)
+            },
+            AttributeValue::NS(numbers) => {
+                let mut tree = BTreeSet::new();
+                for number in numbers {
+                    tree.insert(Attribute::value(AttributeValue::N(number))?);
+                }
+                Ok(tree)
+            },
+            AttributeValue::SS(strings) => {
+                let mut tree = BTreeSet::new();
+                for string in strings {
+                    tree.insert(Attribute::value(AttributeValue::S(string))?);
+                }
+                Ok(tree)
+            },
+            _ => Err(AttributeError::InvalidType)?
+        }
+    }
+}
+
+impl<V: Attribute + Clone + std::hash::Hash + Eq> Attribute for HashSet<V> {
+    fn attribute(&self) -> AttributeValue {
+        let values: Vec<V> = self.into_iter().map(|value|{value.clone()}).collect();
+        let values = values.as_slice();
+        V::vec_attribute(values)
+    }
+
+    fn value(value: AttributeValue) -> Result<Self> {
+        match value {
+            AttributeValue::L(list) => {
+                let mut set = HashSet::new();
+                for value in list {
+                    set.insert(Attribute::value(value)?);
+                }
+                Ok(set)
+            },
+            AttributeValue::BS(binaries) => {
+                let mut set = HashSet::new();
+                for binary in binaries {
+                    set.insert(Attribute::value(AttributeValue::B(binary))?);
+                }
+                Ok(set)
+            },
+            AttributeValue::NS(numbers) => {
+                let mut set = HashSet::new();
+                for number in numbers {
+                    set.insert(Attribute::value(AttributeValue::N(number))?);
+                }
+                Ok(set)
+            },
+            AttributeValue::SS(strings) => {
+                let mut set = HashSet::new();
+                for string in strings {
+                    set.insert(Attribute::value(AttributeValue::S(string))?);
+                }
+                Ok(set)
+            },
+            _ => Err(AttributeError::InvalidType)?
+        }
+    }
+}
+
 impl<K: From<String> + Into<String> + Clone + Eq + std::hash::Hash, V: Attribute + Clone> Attribute for HashMap<K, V> {
     fn attribute(&self) -> AttributeValue {
         let mut map = HashMap::new();
@@ -387,18 +474,29 @@ impl<K: From<String> + Into<String> + Clone + Eq + std::hash::Hash, V: Attribute
                 }
                 Ok(map)
             },
-            _ => Ok(HashMap::new())
+            _ => Err(StdError::from("not a valid HashMap"))
         }
     }
 }
 
-impl Attribute for AttributeValue {
+impl<K: From<String> + Into<String> + Clone + Ord + Eq + std::hash::Hash, V: Attribute + Clone> Attribute for BTreeMap<K, V> {
     fn attribute(&self) -> AttributeValue {
-        self.clone()
+        let mut map = HashMap::new();
+        let _ = self.into_iter().map(|(key, value)|{map.insert(key.clone().into(), value.attribute())});
+        AttributeValue::M(map)
     }
 
     fn value(attribute: AttributeValue) -> Result<Self> {
-        Ok(attribute)
+        match attribute {
+            AttributeValue::M(object) => {
+                let mut tree = BTreeMap::new();
+                for (key, value) in object {
+                    tree.insert(key.into(), V::value(value)?);
+                }
+                Ok(tree)
+            },
+            _ => Err(StdError::from("not a valid BtreeMap"))
+        }
     }
 }
 
@@ -409,6 +507,21 @@ impl<A: Attribute> Attribute for (A,) {
 
     fn value(attribute: AttributeValue) -> Result<Self> {
         Ok((A::value(attribute)?,))
+    }
+}
+
+impl<A: Attribute, B: Attribute> Attribute for (A, B) {
+    fn attribute(&self) -> AttributeValue {
+        AttributeValue::L(vec![self.0.attribute(), self.1.attribute()])
+    }
+
+    fn value(attribute: AttributeValue) -> Result<Self> {
+        match attribute {
+            AttributeValue::L(mut list) => {
+                Ok((Attribute::value(list.remove(0))?, Attribute::value(list.remove(0))?))
+            },
+            _ => Err(StdError::from("invalid tuple expected a array to convert it to tuple"))
+        }
     }
 }
 
@@ -622,5 +735,129 @@ impl <T: Attribute> Attribute for Rc<T> {
     fn value(value: AttributeValue) -> Result<Self> {
         let value = T::value(value)?;
         Ok(Rc::new(value))
+    }
+}
+
+#[cfg(any(feature = "uuid", feature = "full"))]
+impl Attribute for Uuid {
+    fn attribute(&self) -> AttributeValue {
+        AttributeValue::S(self.to_string())
+    }
+
+    fn value(value: AttributeValue) -> Result<Self> {
+        match value {
+            AttributeValue::S(value) => Ok(Uuid::parse_str(&value)?),
+            AttributeValue::B(binary) => Ok(Uuid::from_slice(binary.0.as_slice())?),
+            _ => Err(StdError::from("not a valid uuid"))
+        }
+    }
+}
+
+#[cfg(any(feature = "bson", feature = "full"))]
+impl Attribute for ObjectId {
+    fn attribute(&self) -> AttributeValue {
+        AttributeValue::S(self.to_hex())
+    }
+
+    fn value(value: AttributeValue) -> Result<Self> {
+        match value {
+            AttributeValue::S(value) => Ok(Self::from_str(&value)?),
+            AttributeValue::B(binary) => {
+                let bytes = match TryInto::<[u8; 12]>::try_into(binary.0) {
+                    Ok(bytes) => bytes,
+                    Err(_) => return  Err(StdError::from("could not convert ObjectId from binary"))
+                };
+                Ok(Self::from_bytes(bytes))
+            },
+            _ => Err(StdError::from("not a valid ObjectId"))
+        }
+    }
+}
+
+#[cfg(any(feature = "time", feature = "full"))]
+impl Attribute for Duration {
+    fn attribute(&self) -> AttributeValue {
+        let value: String = DurationString::from(self.clone()).into();
+        AttributeValue::S(value)
+    }
+
+    fn value(value: AttributeValue) -> Result<Self> {
+        match value {
+            AttributeValue::S(duration) => Ok(DurationString::from_string(duration)?.into()),
+            _ => Err(StdError::from("not a valid duration"))
+        }
+    }
+}
+
+#[cfg(any(feature = "time", feature = "full"))]
+impl Attribute for DateTime<Utc> {
+    fn attribute(&self) -> AttributeValue {
+        let time = self.to_rfc3339();
+        AttributeValue::S(time)
+    }
+
+    fn value(value: AttributeValue) -> Result<Self> {
+        match value {
+            AttributeValue::S(string) => {
+                match DateTime::parse_from_rfc3339(&string).map(|dt| dt.with_timezone(&Utc)) {
+                    Ok(date_time) => Ok(date_time),
+                    Err(_) => Err(AttributeError::InvalidFormat)?,
+                }
+            },
+            _ => Err(StdError::from("not a valid date"))
+        }
+    }
+}
+
+#[cfg(any(feature = "time", feature = "full"))]
+impl Attribute for DateTime<FixedOffset> {
+    fn attribute(&self) -> AttributeValue {
+        let time = self.to_rfc3339();
+        AttributeValue::S(time)
+    }
+
+    fn value(value: AttributeValue) -> Result<Self> {
+        match value {
+            AttributeValue::S(string) => {
+                match DateTime::parse_from_rfc3339(&string).map(|dt| dt) {
+                    Ok(date_time) => Ok(date_time),
+                    Err(_) => Err(AttributeError::InvalidFormat)?,
+                }
+            },
+            _ => Err(StdError::from("not a valid date"))
+        }
+    }
+}
+
+#[cfg(any(feature = "time", feature = "full"))]
+impl Attribute for SystemTime {
+    fn attribute(&self) -> AttributeValue {
+        let date = Into::<DateTime<Utc>>::into(self.clone());
+        date.attribute()
+    }
+
+    fn value(value: AttributeValue) -> Result<Self> {
+        let date = DateTime::<Utc>::value(value)?;
+        Ok(date.into())
+    }
+}
+
+#[cfg(any(feature = "time", feature = "full"))]
+impl Attribute for DateTime<Local> {
+    fn attribute(&self) -> AttributeValue {
+        let time = self.to_rfc3339();
+        AttributeValue::S(time)
+    }
+
+    fn value(value: AttributeValue) -> Result<Self> {
+        match value {
+            AttributeValue::S(string) => {
+                match DateTime::parse_from_rfc3339(&string).map(|dt| dt.with_timezone(&Local)) {
+                    Ok(date_time) => Ok(date_time),
+                    Err(_) => Err(AttributeError::InvalidFormat)?,
+                }
+            },
+            _ => Err(StdError::from("not a valid date"))
+        }
     }
 }
