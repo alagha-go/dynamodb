@@ -22,7 +22,7 @@ impl Attribute for AttributeValue {
         self.clone()
     }
 
-    fn value(attribute: AttributeValue) -> Result<Self> {
+    fn value(attribute: AttributeValue) -> AttributeResult<Self> {
         Ok(attribute)
     }
 }

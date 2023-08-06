@@ -16,7 +16,6 @@ use chrono::{Utc, DateTime, Local, FixedOffset};
 #[cfg(any(feature = "time", feature = "full"))]
 use duration_string::DurationString;
 pub use attribute::*;
-#[cfg(any(feature = "bson", feature = "full"))]
 use std::str::FromStr;
 pub use binary::*;
 use std::rc::Rc;
