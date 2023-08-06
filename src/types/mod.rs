@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 mod attribute_value;
 mod attribute;
 mod binary;
