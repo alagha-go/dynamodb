@@ -57,3 +57,10 @@ impl From<uuid::Error> for AttributeError {
         AttributeError::InvalidFormat
     }
 }
+
+#[cfg(any(feature = "uuid", feature = "full"))]
+impl From<chrono::format::ParseError> for AttributeError {
+    fn from(_: chrono::format::ParseError) -> Self {
+        AttributeError::InvalidFormat
+    }
+}

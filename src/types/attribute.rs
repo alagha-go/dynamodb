@@ -1,4 +1,4 @@
-use std::time::{Duration, SystemTime};
+use std::{time::{Duration, SystemTime}, borrow::Cow};
 use errors::AttributeError;
 use super::*;
 
@@ -301,6 +301,19 @@ impl Attribute for String {
 
 }
 
+impl Attribute for Cow<'_, str> {
+    fn attribute(&self) -> AttributeValue {
+        AttributeValue::S(self.to_string())
+    }
+
+    fn value(value: AttributeValue) -> AttributeResult<Self> {
+        match value {
+            AttributeValue::S(string) => Ok(Cow::Owned(string)),
+            _ => Err(AttributeError::InvalidType)
+        }
+    }
+}
+
 impl<V: Attribute> Attribute for Option<V> {
     fn attribute(&self) -> AttributeValue {
         match self {
@@ -354,6 +367,23 @@ impl<V: Attribute + Clone> Attribute for Vec<V> {
             }
             _ => Err(AttributeError::InvalidType)
         }
+    }
+}
+
+impl Attribute for Bytes {
+    fn attribute(&self) -> AttributeValue {
+        AttributeValue::B(Binary(self.to_vec()))
+    }
+
+    fn value(value: AttributeValue) -> AttributeResult<Self> {
+        match value {
+            AttributeValue::B(binary) => Ok(Bytes::from(binary.0)),
+            _ => Err(AttributeError::InvalidType)
+        }
+    }
+
+    fn vec_attribute(values: &[Self]) -> AttributeValue {
+        AttributeValue::BS(values.into_iter().map(|value|{Binary(value.to_vec())}).collect())
     }
 }
 
@@ -415,8 +445,7 @@ impl<V: Attribute + Clone + Ord> Attribute for BTreeSet<V> {
 impl<V: Attribute + Clone + std::hash::Hash + Eq> Attribute for HashSet<V> {
     fn attribute(&self) -> AttributeValue {
         let values: Vec<V> = self.into_iter().map(|value|{value.clone()}).collect();
-        let values = values.as_slice();
-        V::vec_attribute(values)
+        V::vec_attribute(&values)
     }
 
     fn value(value: AttributeValue) -> AttributeResult<Self> {
@@ -743,7 +772,7 @@ impl Attribute for Uuid {
     fn value(value: AttributeValue) -> AttributeResult<Self> {
         match value {
             AttributeValue::S(value) => Ok(Uuid::parse_str(&value)?),
-            AttributeValue::B(binary) => Ok(Uuid::from_slice(binary.0.as_slice())?),
+            AttributeValue::B(binary) => Ok(Uuid::from_slice(binary.0.as_ref())?),
             _ => Err(AttributeError::InvalidType)
         }
     }
@@ -857,3 +886,19 @@ impl Attribute for DateTime<Local> {
         }
     }
 }
+
+#[cfg(any(feature = "time", feature = "full"))]
+impl Attribute for chrono::naive::NaiveDate {
+    fn attribute(&self) -> AttributeValue {
+        AttributeValue::S(self.to_string())
+    }
+
+    fn value(value: AttributeValue) -> AttributeResult<Self> {
+        match value {
+            AttributeValue::S(s) => Ok(Self::from_str(&s)?),
+            _ => Err(AttributeError::InvalidType)
+        }
+    }
+}
+
+

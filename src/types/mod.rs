@@ -21,6 +21,7 @@ use std::str::FromStr;
 pub use binary::*;
 use std::rc::Rc;
 pub use null::*;
+use bytes::Bytes;
 #[cfg(any(feature = "uuid", feature = "full"))]
 use uuid::Uuid;
 
