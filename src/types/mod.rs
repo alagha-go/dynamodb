@@ -4,6 +4,7 @@ mod attribute;
 mod binary;
 mod null;
 mod errors;
+mod item;
 
 use std::collections::{HashMap, VecDeque, btree_map::BTreeMap, btree_set::BTreeSet, HashSet};
 use base64::engine::general_purpose;
