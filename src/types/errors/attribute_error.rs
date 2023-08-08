@@ -2,11 +2,20 @@
 use std::fmt::Display;
 use std::error::Error;
 
+/// Errors that may result of attribute value conversions
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum AttributeError {
+    /// Will be returned if an AttributeValue is present, and is of the expected
+    /// type but its contents are not well-formatted
     InvalidType,
+    /// Will be returned if provided AttributeValue is not of the expected type
     InvalidFormat,
-    MissingField(&'static str)
+    /// Will be returned if provided attributes does not included an
+    /// expected named value
+    MissingField(
+        /// Name of the field that is missing
+        &'static str
+    )
 }
 
 impl Display for AttributeError {
