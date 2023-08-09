@@ -1,29 +1,46 @@
 use std::{time::{Duration, SystemTime}, borrow::Cow};
-use errors::AttributeError;
 use super::*;
 
 
-pub type AttributeResult<T> = std::result::Result<T, AttributeError>;
-
+/// Trait that enables easy conversion from and to the dynamodb [AttributeValue] type
 pub trait Attribute: Sized {
+    /// conversion from a rust type into the [AttributeValue] type
     fn attribute(&self) -> AttributeValue;
-    fn value(value: AttributeValue) -> AttributeResult<Self>;
+    /// falliable conversion from the [AttributeValue] type
+    fn value(value: AttributeValue) -> Result<Self, AttributeError>;
+    /// conversion from a slice into the [AttributeValue]
+    /// 
+    /// `Note`: by default this function is implemented for you by converting it into the `L` attribute. if your type converts to `BS` or `NS` or `SS`
+    /// then you have to implement it youself.
     fn vec_attribute(values: &[Self]) -> AttributeValue {
         AttributeValue::L(values.into_iter().map(|value| {value.attribute()}).collect::<Vec<AttributeValue>>())
     }
-    
+
+    /// falliable conversion from [`Option<AttributeValue>`]
+    fn option_value(option: Option<AttributeValue>, field: & 'static str, default: Option<Self>) -> Result<Self, AttributeError> {
+        match option {
+            None => {
+                match default {
+                    None => Err(AttributeError::MissingField(field)),
+                    Some(value) => Ok(value)
+                }
+            },
+            Some(value) => Attribute::value(value)
+        }
+    }
 }
 
-fn value<T: Attribute>(attribute: AttributeValue) -> AttributeResult<T> {
+fn value<T: Attribute>(attribute: AttributeValue) -> Result<T, AttributeError> {
     Attribute::value(attribute)
 }
+
 
 impl Attribute for u8 {
     fn attribute(&self) -> AttributeValue {
         AttributeValue::N(self.to_string())
     }
 
-    fn value(attribute: AttributeValue) -> AttributeResult<Self> {
+    fn value(attribute: AttributeValue) -> Result<Self, AttributeError> {
         match attribute {
             AttributeValue::N(number) => Ok(number.parse()?),
             _ => Err(AttributeError::InvalidType)
@@ -34,13 +51,16 @@ impl Attribute for u8 {
         AttributeValue::NS(values.into_iter().map(|value|{value.to_string()}).collect())
     }
 }
+
+
+
 
 impl Attribute for u16 {
     fn attribute(&self) -> AttributeValue {
         AttributeValue::N(self.to_string())
     }
 
-    fn value(attribute: AttributeValue) -> AttributeResult<Self> {
+    fn value(attribute: AttributeValue) -> Result<Self, AttributeError> {
         match attribute {
             AttributeValue::N(number) => Ok(number.parse()?),
             _ => Err(AttributeError::InvalidType)
@@ -52,13 +72,14 @@ impl Attribute for u16 {
     }
 
 }
+
 
 impl Attribute for u32 {
     fn attribute(&self) -> AttributeValue {
         AttributeValue::N(self.to_string())
     }
 
-    fn value(attribute: AttributeValue) -> AttributeResult<Self> {
+    fn value(attribute: AttributeValue) -> Result<Self, AttributeError> {
         match attribute {
             AttributeValue::N(number) => Ok(number.parse()?),
             _ => Err(AttributeError::InvalidType)
@@ -70,13 +91,14 @@ impl Attribute for u32 {
     }
 
 }
+
 
 impl Attribute for u64 {
     fn attribute(&self) -> AttributeValue {
         AttributeValue::N(self.to_string())
     }
 
-    fn value(attribute: AttributeValue) -> AttributeResult<Self> {
+    fn value(attribute: AttributeValue) -> Result<Self, AttributeError> {
         match attribute {
             AttributeValue::N(number) => Ok(number.parse()?),
             _ => Err(AttributeError::InvalidType)
@@ -88,13 +110,14 @@ impl Attribute for u64 {
     }
 
 }
+
 
 impl Attribute for usize {
     fn attribute(&self) -> AttributeValue {
         AttributeValue::N(self.to_string())
     }
 
-    fn value(attribute: AttributeValue) -> AttributeResult<Self> {
+    fn value(attribute: AttributeValue) -> Result<Self, AttributeError> {
         match attribute {
             AttributeValue::N(number) => Ok(number.parse()?),
             _ => Err(AttributeError::InvalidType)
@@ -106,13 +129,14 @@ impl Attribute for usize {
     }
 
 }
+
 
 impl Attribute for u128 {
     fn attribute(&self) -> AttributeValue {
         AttributeValue::N(self.to_string())
     }
 
-    fn value(attribute: AttributeValue) -> AttributeResult<Self> {
+    fn value(attribute: AttributeValue) -> Result<Self, AttributeError> {
         match attribute {
             AttributeValue::N(number) => Ok(number.parse()?),
             _ => Err(AttributeError::InvalidType)
@@ -124,13 +148,14 @@ impl Attribute for u128 {
     }
 
 }
+
 
 impl Attribute for i8 {
     fn attribute(&self) -> AttributeValue {
         AttributeValue::N(self.to_string())
     }
 
-    fn value(attribute: AttributeValue) -> AttributeResult<Self> {
+    fn value(attribute: AttributeValue) -> Result<Self, AttributeError> {
         match attribute {
             AttributeValue::N(number) => Ok(number.parse()?),
             _ => Err(AttributeError::InvalidType)
@@ -142,13 +167,14 @@ impl Attribute for i8 {
     }
 
 }
+
 
 impl Attribute for i16 {
     fn attribute(&self) -> AttributeValue {
         AttributeValue::N(self.to_string())
     }
 
-    fn value(attribute: AttributeValue) -> AttributeResult<Self> {
+    fn value(attribute: AttributeValue) -> Result<Self, AttributeError> {
         match attribute {
             AttributeValue::N(number) => Ok(number.parse()?),
             _ => Err(AttributeError::InvalidType)
@@ -160,13 +186,14 @@ impl Attribute for i16 {
     }
 
 }
+
 
 impl Attribute for i32 {
     fn attribute(&self) -> AttributeValue {
         AttributeValue::N(self.to_string())
     }
 
-    fn value(attribute: AttributeValue) -> AttributeResult<Self> {
+    fn value(attribute: AttributeValue) -> Result<Self, AttributeError> {
         match attribute {
             AttributeValue::N(number) => Ok(number.parse()?),
             _ => Err(AttributeError::InvalidType)
@@ -178,13 +205,14 @@ impl Attribute for i32 {
     }
 
 }
+
 
 impl Attribute for i64 {
     fn attribute(&self) -> AttributeValue {
         AttributeValue::N(self.to_string())
     }
 
-    fn value(attribute: AttributeValue) -> AttributeResult<Self> {
+    fn value(attribute: AttributeValue) -> Result<Self, AttributeError> {
         match attribute {
             AttributeValue::N(number) => Ok(number.parse()?),
             _ => Err(AttributeError::InvalidType)
@@ -196,13 +224,14 @@ impl Attribute for i64 {
     }
 
 }
+
 
 impl Attribute for isize {
     fn attribute(&self) -> AttributeValue {
         AttributeValue::N(self.to_string())
     }
 
-    fn value(attribute: AttributeValue) -> AttributeResult<Self> {
+    fn value(attribute: AttributeValue) -> Result<Self, AttributeError> {
         match attribute {
             AttributeValue::N(number) => Ok(number.parse()?),
             _ => Err(AttributeError::InvalidType)
@@ -214,13 +243,14 @@ impl Attribute for isize {
     }
 
 }
+
 
 impl Attribute for i128 {
     fn attribute(&self) -> AttributeValue {
         AttributeValue::N(self.to_string())
     }
 
-    fn value(attribute: AttributeValue) -> AttributeResult<Self> {
+    fn value(attribute: AttributeValue) -> Result<Self, AttributeError> {
         match attribute {
             AttributeValue::N(number) => Ok(number.parse()?),
             _ => Err(AttributeError::InvalidType)
@@ -232,13 +262,14 @@ impl Attribute for i128 {
     }
 
 }
+
 
 impl Attribute for f32 {
     fn attribute(&self) -> AttributeValue {
         AttributeValue::N(self.to_string())
     }
 
-    fn value(attribute: AttributeValue) -> AttributeResult<Self> {
+    fn value(attribute: AttributeValue) -> Result<Self, AttributeError> {
         match attribute {
             AttributeValue::N(number) => Ok(number.parse()?),
             _ => Err(AttributeError::InvalidType)
@@ -250,13 +281,14 @@ impl Attribute for f32 {
     }
 
 }
+
 
 impl Attribute for f64 {
     fn attribute(&self) -> AttributeValue {
         AttributeValue::N(self.to_string())
     }
 
-    fn value(attribute: AttributeValue) -> AttributeResult<Self> {
+    fn value(attribute: AttributeValue) -> Result<Self, AttributeError> {
         match attribute {
             AttributeValue::N(number) => Ok(number.parse()?),
             _ => Err(AttributeError::InvalidType)
@@ -269,12 +301,13 @@ impl Attribute for f64 {
 
 }
 
+
 impl Attribute for bool {
     fn attribute(&self) -> AttributeValue {
         AttributeValue::BOOL(*self)
     }
 
-    fn value(attribute: AttributeValue) -> AttributeResult<Self> {
+    fn value(attribute: AttributeValue) -> Result<Self, AttributeError> {
         match attribute {
             AttributeValue::BOOL(b) => Ok(b),
             _ => Err(AttributeError::InvalidType)
@@ -282,12 +315,13 @@ impl Attribute for bool {
     }
 }
 
+
 impl Attribute for String {
     fn attribute(&self) -> AttributeValue {
         AttributeValue::S(self.to_owned())
     }
 
-    fn value(attribute: AttributeValue) -> AttributeResult<Self> {
+    fn value(attribute: AttributeValue) -> Result<Self, AttributeError> {
         match attribute {
             AttributeValue::S(string) => Ok(string),
             AttributeValue::N(string) => Ok(string),
@@ -301,18 +335,20 @@ impl Attribute for String {
 
 }
 
+
 impl Attribute for Cow<'_, str> {
     fn attribute(&self) -> AttributeValue {
         AttributeValue::S(self.to_string())
     }
 
-    fn value(value: AttributeValue) -> AttributeResult<Self> {
+    fn value(value: AttributeValue) -> Result<Self, AttributeError> {
         match value {
             AttributeValue::S(string) => Ok(Cow::Owned(string)),
             _ => Err(AttributeError::InvalidType)
         }
     }
 }
+
 
 impl<V: Attribute> Attribute for Option<V> {
     fn attribute(&self) -> AttributeValue {
@@ -322,7 +358,7 @@ impl<V: Attribute> Attribute for Option<V> {
         }
     }
 
-    fn value(attribute: AttributeValue) -> AttributeResult<Self> {
+    fn value(attribute: AttributeValue) -> Result<Self, AttributeError> {
         match attribute {
             AttributeValue::None => Ok(None),
             _ => Ok(Some(Attribute::value(attribute)?))
@@ -330,12 +366,16 @@ impl<V: Attribute> Attribute for Option<V> {
     }
 }
 
+
+/// Attribute implementation for any type that implements the [Attribute] trait
 impl<V: Attribute + Clone> Attribute for Vec<V> {
+    /// uses the [Attribute::vec_attribute] function to do the conversion
     fn attribute(&self) -> AttributeValue {
         V::vec_attribute(self)
     }
 
-    fn value(attribute: AttributeValue) -> AttributeResult<Self> {
+    /// does the conversion from either the `L` or `BS` or `NS` or `SS` Attributes
+    fn value(attribute: AttributeValue) -> Result<Self, AttributeError> {
         match attribute {
             AttributeValue::L(list) => {
                 let mut values = Vec::new();
@@ -370,12 +410,13 @@ impl<V: Attribute + Clone> Attribute for Vec<V> {
     }
 }
 
+
 impl Attribute for Bytes {
     fn attribute(&self) -> AttributeValue {
         AttributeValue::B(Binary(self.to_vec()))
     }
 
-    fn value(value: AttributeValue) -> AttributeResult<Self> {
+    fn value(value: AttributeValue) -> Result<Self, AttributeError> {
         match value {
             AttributeValue::B(binary) => Ok(Bytes::from(binary.0)),
             _ => Err(AttributeError::InvalidType)
@@ -387,12 +428,13 @@ impl Attribute for Bytes {
     }
 }
 
+
 impl Attribute for Vec<Binary> {
     fn attribute(&self) -> AttributeValue {
         AttributeValue::BS(self.clone())
     }
 
-    fn value(attribute: AttributeValue) -> AttributeResult<Self> {
+    fn value(attribute: AttributeValue) -> Result<Self, AttributeError> {
         match attribute {
             AttributeValue::BS(binaries) => Ok(binaries),
             _ => Err(AttributeError::InvalidType)
@@ -400,6 +442,8 @@ impl Attribute for Vec<Binary> {
     }
 }
 
+
+/// implements the conversion just as `Vec<V>`
 impl<V: Attribute + Clone + Ord> Attribute for BTreeSet<V> {
     fn attribute(&self) -> AttributeValue {
         let values: Vec<V> = self.into_iter().map(|value|{value.clone()}).collect();
@@ -407,7 +451,7 @@ impl<V: Attribute + Clone + Ord> Attribute for BTreeSet<V> {
         V::vec_attribute(values)
     }
 
-    fn value(value: AttributeValue) -> AttributeResult<Self> {
+    fn value(value: AttributeValue) -> Result<Self, AttributeError> {
         match value {
             AttributeValue::L(list) => {
                 let mut tree = BTreeSet::new();
@@ -442,13 +486,14 @@ impl<V: Attribute + Clone + Ord> Attribute for BTreeSet<V> {
     }
 }
 
+/// implements the conversion just as `Vec<V>`
 impl<V: Attribute + Clone + std::hash::Hash + Eq> Attribute for HashSet<V> {
     fn attribute(&self) -> AttributeValue {
         let values: Vec<V> = self.into_iter().map(|value|{value.clone()}).collect();
         V::vec_attribute(&values)
     }
 
-    fn value(value: AttributeValue) -> AttributeResult<Self> {
+    fn value(value: AttributeValue) -> Result<Self, AttributeError> {
         match value {
             AttributeValue::L(list) => {
                 let mut set = HashSet::new();
@@ -483,6 +528,7 @@ impl<V: Attribute + Clone + std::hash::Hash + Eq> Attribute for HashSet<V> {
     }
 }
 
+/// A Map type for Items for HashMaps, represented as the `M` AttributeValue type
 impl<K: From<String> + Into<String> + Clone + Eq + std::hash::Hash, V: Attribute + Clone> Attribute for HashMap<K, V> {
     fn attribute(&self) -> AttributeValue {
         let mut map = HashMap::new();
@@ -490,7 +536,7 @@ impl<K: From<String> + Into<String> + Clone + Eq + std::hash::Hash, V: Attribute
         AttributeValue::M(map)
     }
 
-    fn value(attribute: AttributeValue) -> AttributeResult<Self> {
+    fn value(attribute: AttributeValue) -> Result<Self, AttributeError> {
         match attribute {
             AttributeValue::M(object) => {
                 let mut map = HashMap::new();
@@ -504,6 +550,7 @@ impl<K: From<String> + Into<String> + Clone + Eq + std::hash::Hash, V: Attribute
     }
 }
 
+/// A Map type for `Items` for `BTreeMaps`, represented as the `M` AttributeValue type
 impl<K: From<String> + Into<String> + Clone + Ord + Eq + std::hash::Hash, V: Attribute + Clone> Attribute for BTreeMap<K, V> {
     fn attribute(&self) -> AttributeValue {
         let mut map = HashMap::new();
@@ -511,7 +558,7 @@ impl<K: From<String> + Into<String> + Clone + Ord + Eq + std::hash::Hash, V: Att
         AttributeValue::M(map)
     }
 
-    fn value(attribute: AttributeValue) -> AttributeResult<Self> {
+    fn value(attribute: AttributeValue) -> Result<Self, AttributeError> {
         match attribute {
             AttributeValue::M(object) => {
                 let mut tree = BTreeMap::new();
@@ -525,22 +572,24 @@ impl<K: From<String> + Into<String> + Clone + Ord + Eq + std::hash::Hash, V: Att
     }
 }
 
+
 impl<A: Attribute> Attribute for (A,) {
     fn attribute(&self) -> AttributeValue {
         self.0.attribute()
     }
 
-    fn value(attribute: AttributeValue) -> AttributeResult<Self> {
+    fn value(attribute: AttributeValue) -> Result<Self, AttributeError> {
         Ok((A::value(attribute)?,))
     }
 }
+
 
 impl<A: Attribute, B: Attribute> Attribute for (A, B) {
     fn attribute(&self) -> AttributeValue {
         AttributeValue::L(vec![self.0.attribute(), self.1.attribute()])
     }
 
-    fn value(attribute: AttributeValue) -> AttributeResult<Self> {
+    fn value(attribute: AttributeValue) -> Result<Self, AttributeError> {
         match attribute {
             AttributeValue::L(mut list) => {
                 Ok((Attribute::value(list.remove(0))?, Attribute::value(list.remove(0))?))
@@ -550,12 +599,13 @@ impl<A: Attribute, B: Attribute> Attribute for (A, B) {
     }
 }
 
+
 impl<A: Attribute, B: Attribute, C: Attribute> Attribute for (A, B, C) {
     fn attribute(&self) -> AttributeValue {
         AttributeValue::L(vec![self.0.attribute(), self.1.attribute(), self.2.attribute()])
     }
 
-    fn value(attribute: AttributeValue) -> AttributeResult<Self> {
+    fn value(attribute: AttributeValue) -> Result<Self, AttributeError> {
         match attribute {
             AttributeValue::L(mut list) => {
                 Ok((Attribute::value(list.remove(0))?, Attribute::value(list.remove(0))?, Attribute::value(list.remove(0))?))
@@ -565,12 +615,13 @@ impl<A: Attribute, B: Attribute, C: Attribute> Attribute for (A, B, C) {
     }
 }
 
+
 impl<A: Attribute, B: Attribute, C: Attribute, D: Attribute> Attribute for (A, B, C, D) {
     fn attribute(&self) -> AttributeValue {
         AttributeValue::L(vec![self.0.attribute(), self.1.attribute(), self.2.attribute(), self.3.attribute()])
     }
 
-    fn value(attribute: AttributeValue) -> AttributeResult<Self> {
+    fn value(attribute: AttributeValue) -> Result<Self, AttributeError> {
         match attribute {
             AttributeValue::L(mut list) => {
                 Ok((Attribute::value(list.remove(0))?, Attribute::value(list.remove(0))?, Attribute::value(list.remove(0))?, Attribute::value(list.remove(0))?))
@@ -580,12 +631,13 @@ impl<A: Attribute, B: Attribute, C: Attribute, D: Attribute> Attribute for (A, B
     }
 }
 
+
 impl<A: Attribute, B: Attribute, C: Attribute, D: Attribute, E: Attribute> Attribute for (A, B, C, D, E) {
     fn attribute(&self) -> AttributeValue {
         AttributeValue::L(vec![self.0.attribute(), self.1.attribute(), self.2.attribute(), self.3.attribute(), self.4.attribute()])
     }
 
-    fn value(attribute: AttributeValue) -> AttributeResult<Self> {
+    fn value(attribute: AttributeValue) -> Result<Self, AttributeError> {
         match attribute {
             AttributeValue::L(mut list) => {
                 Ok((Attribute::value(list.remove(0))?, Attribute::value(list.remove(0))?, Attribute::value(list.remove(0))?, Attribute::value(list.remove(0))?, Attribute::value(list.remove(0))?))
@@ -595,12 +647,13 @@ impl<A: Attribute, B: Attribute, C: Attribute, D: Attribute, E: Attribute> Attri
     }
 }
 
+
 impl<A: Attribute, B: Attribute, C: Attribute, D: Attribute, E: Attribute, F: Attribute> Attribute for (A, B, C, D, E, F) {
     fn attribute(&self) -> AttributeValue {
         AttributeValue::L(vec![self.0.attribute(), self.1.attribute(), self.2.attribute(), self.3.attribute(), self.4.attribute(), self.5.attribute()])
     }
 
-    fn value(attribute: AttributeValue) -> AttributeResult<Self> {
+    fn value(attribute: AttributeValue) -> Result<Self, AttributeError> {
         match attribute {
             AttributeValue::L(mut list) => {
                 Ok((value(list.remove(0))?, value(list.remove(0))?, value(list.remove(0))?, value(list.remove(0))?, value(list.remove(0))?, value(list.remove(0))?))
@@ -610,12 +663,13 @@ impl<A: Attribute, B: Attribute, C: Attribute, D: Attribute, E: Attribute, F: At
     }
 }
 
+
 impl<A: Attribute, B: Attribute, C: Attribute, D: Attribute, E: Attribute, F: Attribute, G: Attribute> Attribute for (A, B, C, D, E, F, G) {
     fn attribute(&self) -> AttributeValue {
         AttributeValue::L(vec![self.0.attribute(), self.1.attribute(), self.2.attribute(), self.3.attribute(), self.4.attribute(), self.5.attribute(), self.6.attribute()])
     }
 
-    fn value(attribute: AttributeValue) -> AttributeResult<Self> {
+    fn value(attribute: AttributeValue) -> Result<Self, AttributeError> {
         match attribute {
             AttributeValue::L(mut list) => {
                 Ok((value(list.remove(0))?, value(list.remove(0))?, value(list.remove(0))?, value(list.remove(0))?, value(list.remove(0))?, value(list.remove(0))?, value(list.remove(0))?))
@@ -625,12 +679,13 @@ impl<A: Attribute, B: Attribute, C: Attribute, D: Attribute, E: Attribute, F: At
     }
 }
 
+
 impl<A: Attribute, B: Attribute, C: Attribute, D: Attribute, E: Attribute, F: Attribute, G: Attribute, H: Attribute> Attribute for (A, B, C, D, E, F, G, H) {
     fn attribute(&self) -> AttributeValue {
         AttributeValue::L(vec![self.0.attribute(), self.1.attribute(), self.2.attribute(), self.3.attribute(), self.4.attribute(), self.5.attribute(), self.6.attribute(), self.7.attribute()])
     }
 
-    fn value(attribute: AttributeValue) -> AttributeResult<Self> {
+    fn value(attribute: AttributeValue) -> Result<Self, AttributeError> {
         match attribute {
             AttributeValue::L(mut list) => {
                 Ok((value(list.remove(0))?, value(list.remove(0))?, value(list.remove(0))?, value(list.remove(0))?, value(list.remove(0))?, value(list.remove(0))?, value(list.remove(0))?, value(list.remove(0))?))
@@ -640,12 +695,13 @@ impl<A: Attribute, B: Attribute, C: Attribute, D: Attribute, E: Attribute, F: At
     }
 }
 
+
 impl<A: Attribute, B: Attribute, C: Attribute, D: Attribute, E: Attribute, F: Attribute, G: Attribute, H: Attribute, I: Attribute> Attribute for (A, B, C, D, E, F, G, H, I) {
     fn attribute(&self) -> AttributeValue {
         AttributeValue::L(vec![self.0.attribute(), self.1.attribute(), self.2.attribute(), self.3.attribute(), self.4.attribute(), self.5.attribute(), self.6.attribute(), self.7.attribute(), self.8.attribute()])
     }
 
-    fn value(attribute: AttributeValue) -> AttributeResult<Self> {
+    fn value(attribute: AttributeValue) -> Result<Self, AttributeError> {
         match attribute {
             AttributeValue::L(mut list) => {
                 Ok((value(list.remove(0))?, value(list.remove(0))?, value(list.remove(0))?, value(list.remove(0))?, value(list.remove(0))?, value(list.remove(0))?, value(list.remove(0))?, value(list.remove(0))?, value(list.remove(0))?))
@@ -655,12 +711,13 @@ impl<A: Attribute, B: Attribute, C: Attribute, D: Attribute, E: Attribute, F: At
     }
 }
 
+
 impl<A: Attribute, B: Attribute, C: Attribute, D: Attribute, E: Attribute, F: Attribute, G: Attribute, H: Attribute, I: Attribute, J: Attribute> Attribute for (A, B, C, D, E, F, G, H, I, J) {
     fn attribute(&self) -> AttributeValue {
         AttributeValue::L(vec![self.0.attribute(), self.1.attribute(), self.2.attribute(), self.3.attribute(), self.4.attribute(), self.5.attribute(), self.6.attribute(), self.7.attribute(), self.8.attribute(), self.9.attribute()])
     }
 
-    fn value(attribute: AttributeValue) -> AttributeResult<Self> {
+    fn value(attribute: AttributeValue) -> Result<Self, AttributeError> {
         match attribute {
             AttributeValue::L(mut list) => {
                 Ok((value(list.remove(0))?, value(list.remove(0))?, value(list.remove(0))?, value(list.remove(0))?, value(list.remove(0))?, value(list.remove(0))?, value(list.remove(0))?, value(list.remove(0))?, value(list.remove(0))?, value(list.remove(0))?))
@@ -670,12 +727,13 @@ impl<A: Attribute, B: Attribute, C: Attribute, D: Attribute, E: Attribute, F: At
     }
 }
 
+
 impl <T: Attribute + Default, const SIZE: usize> Attribute for [T; SIZE] {
     fn attribute(&self) -> AttributeValue {
         Attribute::vec_attribute(self)
     }
 
-    fn value(attribute: AttributeValue) -> AttributeResult<Self> {
+    fn value(attribute: AttributeValue) -> Result<Self, AttributeError> {
         use AttributeValue::*;
         match attribute {
             L(mut list)  => {
@@ -727,49 +785,82 @@ impl <T: Attribute + Default, const SIZE: usize> Attribute for [T; SIZE] {
     }
 }
 
+/// implements the conversion using the `Vec<V>`
 impl<T: Attribute + Clone> Attribute for VecDeque<T> {
     fn attribute(&self) -> AttributeValue {
         let values = Into::<Vec<T>>::into(self.clone());
         T::vec_attribute(&values)
     }
 
-    fn value(value: AttributeValue) -> AttributeResult<Self> {
+    fn value(value: AttributeValue) -> Result<Self, AttributeError> {
         let array: Vec<T> = Attribute::value(value)?;
         Ok(array.into())
     }
 }
 
-impl <T: Attribute> Attribute for Box<T> {
+
+impl<T: Attribute> Attribute for Box<T> {
     fn attribute(&self) -> AttributeValue {
         let value = &**self;
         Attribute::attribute(value)
     }
 
-    fn value(value: AttributeValue) -> AttributeResult<Self> {
+    fn value(value: AttributeValue) -> Result<Self, AttributeError> {
         let value = Attribute::value(value)?;
         Ok(Box::new(value))
     }
 }
 
-impl <T: Attribute> Attribute for Rc<T> {
+
+impl<T: Attribute + Clone> Attribute for Box<[T]> {
+    fn attribute(&self) -> AttributeValue {
+        let value = &**self;
+        let values = value.to_vec();
+        values.attribute()
+    }
+
+    fn value(value: AttributeValue) -> Result<Self, AttributeError> {
+        let list = Vec::<T>::value(value)?;
+        Ok(list.into())
+    }
+}
+
+
+impl<T: Attribute> Attribute for Rc<T> {
     fn attribute(&self) -> AttributeValue {
         let value = &**self;
         Attribute::attribute(value)
     }
 
-    fn value(value: AttributeValue) -> AttributeResult<Self> {
+    fn value(value: AttributeValue) -> Result<Self, AttributeError> {
         let value = T::value(value)?;
         Ok(Rc::new(value))
     }
 }
 
+
+impl<T: Attribute + Clone> Attribute for Rc<[T]> {
+    fn attribute(&self) -> AttributeValue {
+        let value = &**self;
+        let values = value.to_vec();
+        values.attribute()
+    }
+
+    fn value(value: AttributeValue) -> Result<Self, AttributeError> {
+        let list = Vec::<T>::value(value)?;
+        Ok(list.into())
+    }
+}
+
+
+/// A `String` type for `Uuids`, represented by the `S` AttributeValue type
 #[cfg(any(feature = "uuid", feature = "full"))]
 impl Attribute for Uuid {
     fn attribute(&self) -> AttributeValue {
         AttributeValue::S(self.to_string())
     }
 
-    fn value(value: AttributeValue) -> AttributeResult<Self> {
+    fn value(value: AttributeValue) -> Result<Self, AttributeError> {
         match value {
             AttributeValue::S(value) => Ok(Uuid::parse_str(&value)?),
             AttributeValue::B(binary) => Ok(Uuid::from_slice(binary.0.as_ref())?),
@@ -778,13 +869,15 @@ impl Attribute for Uuid {
     }
 }
 
+/// A hex version of the mongodb`ObjectId`, represented by the `S` AttributeValue type
 #[cfg(any(feature = "bson", feature = "full"))]
 impl Attribute for ObjectId {
     fn attribute(&self) -> AttributeValue {
         AttributeValue::S(self.to_hex())
     }
 
-    fn value(value: AttributeValue) -> AttributeResult<Self> {
+    /// converts from either the `S` or the `B` attributes
+    fn value(value: AttributeValue) -> Result<Self, AttributeError> {
         match value {
             AttributeValue::S(value) => Ok(Self::from_str(&value)?),
             AttributeValue::B(binary) => {
@@ -799,6 +892,7 @@ impl Attribute for ObjectId {
     }
 }
 
+/// converts the duration to and from String using the `S` attribute
 #[cfg(any(feature = "time", feature = "full"))]
 impl Attribute for Duration {
     fn attribute(&self) -> AttributeValue {
@@ -806,7 +900,7 @@ impl Attribute for Duration {
         AttributeValue::S(value)
     }
 
-    fn value(value: AttributeValue) -> AttributeResult<Self> {
+    fn value(value: AttributeValue) -> Result<Self, AttributeError> {
         match value {
             AttributeValue::S(duration) => Ok(DurationString::from_string(duration)?.into()),
             _ => Err(AttributeError::InvalidType)
@@ -814,6 +908,7 @@ impl Attribute for Duration {
     }
 }
 
+/// An `rfc3339` formatted version of `DateTime<Utc>`, represented by the `S` AttributeValue type
 #[cfg(any(feature = "time", feature = "full"))]
 impl Attribute for DateTime<Utc> {
     fn attribute(&self) -> AttributeValue {
@@ -821,7 +916,7 @@ impl Attribute for DateTime<Utc> {
         AttributeValue::S(time)
     }
 
-    fn value(value: AttributeValue) -> AttributeResult<Self> {
+    fn value(value: AttributeValue) -> Result<Self, AttributeError> {
         match value {
             AttributeValue::S(string) => {
                 match DateTime::parse_from_rfc3339(&string).map(|dt| dt.with_timezone(&Utc)) {
@@ -834,6 +929,7 @@ impl Attribute for DateTime<Utc> {
     }
 }
 
+/// An `rfc3339` formatted version of `DateTime<FixedOffset>`, represented by the `S` AttributeValue type
 #[cfg(any(feature = "time", feature = "full"))]
 impl Attribute for DateTime<FixedOffset> {
     fn attribute(&self) -> AttributeValue {
@@ -841,7 +937,7 @@ impl Attribute for DateTime<FixedOffset> {
         AttributeValue::S(time)
     }
 
-    fn value(value: AttributeValue) -> AttributeResult<Self> {
+    fn value(value: AttributeValue) -> Result<Self, AttributeError> {
         match value {
             AttributeValue::S(string) => {
                 match DateTime::parse_from_rfc3339(&string).map(|dt| dt) {
@@ -854,6 +950,7 @@ impl Attribute for DateTime<FixedOffset> {
     }
 }
 
+/// An `rfc3339` formatted version of `SystemTime`, represented by the `S` AttributeValue type
 #[cfg(any(feature = "time", feature = "full"))]
 impl Attribute for SystemTime {
     fn attribute(&self) -> AttributeValue {
@@ -861,12 +958,13 @@ impl Attribute for SystemTime {
         date.attribute()
     }
 
-    fn value(value: AttributeValue) -> AttributeResult<Self> {
+    fn value(value: AttributeValue) -> Result<Self, AttributeError> {
         let date = DateTime::<Utc>::value(value)?;
         Ok(date.into())
     }
 }
 
+/// An `rfc3339` formatted version of `DateTime<Local>`, represented by the `S` AttributeValue type
 #[cfg(any(feature = "time", feature = "full"))]
 impl Attribute for DateTime<Local> {
     fn attribute(&self) -> AttributeValue {
@@ -874,7 +972,7 @@ impl Attribute for DateTime<Local> {
         AttributeValue::S(time)
     }
 
-    fn value(value: AttributeValue) -> AttributeResult<Self> {
+    fn value(value: AttributeValue) -> Result<Self, AttributeError> {
         match value {
             AttributeValue::S(string) => {
                 match DateTime::parse_from_rfc3339(&string).map(|dt| dt.with_timezone(&Local)) {
@@ -887,18 +985,17 @@ impl Attribute for DateTime<Local> {
     }
 }
 
+/// An `rfc3339` formatted version of `NaiveDate`, represented by the `S` AttributeValue type
 #[cfg(any(feature = "time", feature = "full"))]
 impl Attribute for chrono::naive::NaiveDate {
     fn attribute(&self) -> AttributeValue {
         AttributeValue::S(self.to_string())
     }
 
-    fn value(value: AttributeValue) -> AttributeResult<Self> {
+    fn value(value: AttributeValue) -> Result<Self, AttributeError> {
         match value {
             AttributeValue::S(s) => Ok(Self::from_str(&s)?),
             _ => Err(AttributeError::InvalidType)
         }
     }
 }
-
-

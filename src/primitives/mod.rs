@@ -1,9 +1,9 @@
-#![allow(dead_code)]
+#![deny(dead_code)]
 mod attribute_value;
 mod attribute;
 mod binary;
 mod null;
-mod errors;
+mod attribute_error;
 mod item;
 
 use std::collections::{HashMap, VecDeque, btree_map::BTreeMap, btree_set::BTreeSet, HashSet};
@@ -17,18 +17,19 @@ use bson::oid::ObjectId;
 use chrono::{Utc, DateTime, Local, FixedOffset};
 #[cfg(any(feature = "time", feature = "full"))]
 use duration_string::DurationString;
-pub use attribute::*;
+#[doc(inline)]
+pub use attribute::Attribute;
+#[doc(inline)]
+pub use attribute_error::AttributeError;
 use std::str::FromStr;
-pub use binary::*;
+#[doc(inline)]
+pub use binary::Binary;
+#[doc(inline)]
+pub use item::Item;
 use std::rc::Rc;
-pub use null::*;
 use bytes::Bytes;
 #[cfg(any(feature = "uuid", feature = "full"))]
 use uuid::Uuid;
-
-
-pub type StdError = Box<dyn std::error::Error + Send + Sync + 'static>;
-pub type Result<T> = std::result::Result<T, StdError>;
 
 
 const BASE64: GeneralPurpose = general_purpose::STANDARD;
