@@ -1,5 +1,5 @@
-// #[doc(hidden)]
 pub mod primitives;
+pub mod types;
 #[cfg(any(feature = "uuid", feature = "full"))]
 pub use uuid;
 #[cfg(any(feature = "bson", feature = "full"))]
