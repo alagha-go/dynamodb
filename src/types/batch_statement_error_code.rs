@@ -1,5 +1,7 @@
 use super::*;
 
+
+/// <p> possible error code  values from batch statement operation </p>
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum BatchStatamentErrorCode {
     ConditionalCheckFailed,
