@@ -21,6 +21,7 @@ use duration_string::DurationString;
 pub use attribute::Attribute;
 #[doc(inline)]
 pub use attribute_error::AttributeError;
+#[cfg(any(feature = "uuid", feature = "full"))]
 use std::str::FromStr;
 #[doc(inline)]
 pub use binary::Binary;
