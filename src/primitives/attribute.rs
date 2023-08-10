@@ -17,11 +17,16 @@ pub trait Attribute: Sized {
     }
 
     /// falliable conversion from [`Option<AttributeValue>`]
-    fn option_value(option: Option<AttributeValue>, field: & 'static str, default: Option<Self>) -> Result<Self, AttributeError> {
+    fn option_value(option: Option<AttributeValue>, field: Option<& 'static str>, default: Option<Self>) -> Result<Self, AttributeError> {
         match option {
             None => {
                 match default {
-                    None => Err(AttributeError::MissingField(field)),
+                    None => {
+                        match field {
+                            Some(field) => Err(AttributeError::MissingField(field)),
+                            None => Err(AttributeError::InvalidType)
+                        }
+                    },
                     Some(value) => Ok(value)
                 }
             },
