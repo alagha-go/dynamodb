@@ -2,7 +2,7 @@ use super::*;
 
 
 /// <p> Determines the level of detail about either provisioned or on-demand throughput consumption that is returned in the response. </p>
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, PartialEq, Serialize, Default)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum ReturnConsumedCapacity {
     #[default]
