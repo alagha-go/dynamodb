@@ -2,7 +2,7 @@ use super::*;
 
 
 /// <p> Represents the amount of provisioned throughput capacity consumed on a table or an index. </p>
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, PartialEq, Deserialize, Default)]
 #[serde(rename_all = "PascalCase", default)]
 pub struct Capacity {
     /// The total number of capacity units consumed on a table or an index.

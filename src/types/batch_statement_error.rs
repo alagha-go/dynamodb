@@ -2,7 +2,7 @@ use super::*;
 
 
 /// <p> An error associated with a statement in a PartiQL batch that was run. </p>
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, PartialEq, Deserialize, Default)]
 #[serde(rename_all = "PascalCase")]
 pub struct BatchStatamentError {
     /// The error code associated with the failed PartiQL batch statement.

@@ -2,7 +2,7 @@ use super::*;
 
 
 /// <p> A PartiQL batch statement request. </p>
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, PartialEq, Serialize, Default)]
 #[serde(rename_all = "PascalCase")]
 pub struct BatchExecuteStatementRequest {
     /// <p>The list of PartiQL statements representing the batch to run.</p>
